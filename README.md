@@ -1,7 +1,9 @@
 # serv00-WEB-Login
  serv00,CT8自动定时登录web。
 
-### 设置变量
+#### 一、Fork本仓库，然后按以下步骤设置。
+
+#### 设置变量
 点仓库 `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
 
 ---
