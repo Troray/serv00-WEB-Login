@@ -1,0 +1,29 @@
+name: Login in Panel
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'  # 每周一下午13点运行
+  workflow_dispatch:
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run login script
+      run: npm start
+      env:
+        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+        TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        LOGIN_INFO: ${{ secrets.LOGIN_INFO }}

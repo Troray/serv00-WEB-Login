@@ -1,0 +1,16 @@
+{
+    "name": "login-check",
+    "version": "1.0.0",
+    "description": "A script to login and check a webpage",
+    "main": "login.js",
+    "type": "module",
+    "scripts": {
+      "start": "node login.js"
+    },
+    "dependencies": {
+      "puppeteer": "^19.0.0",
+      "node-fetch": "^3.0.0"
+    },
+    "author": "",
+    "license": "ISC"
+}
