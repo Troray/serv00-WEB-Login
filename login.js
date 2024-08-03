@@ -54,27 +54,57 @@ const loginAndCheck = async (user, ipAddress) => {
 
     while (attempts < 3 && !loggedIn) {
         try {
-            // console.log(`Attempt ${attempts + 1} for ${user.username}`);
             await page.goto(LOGIN_URL, { waitUntil: 'networkidle2' });
-            // console.log(`Navigated to ${LOGIN_URL}`);
             await page.type('#id_username', user.username);
             await page.type('#id_password', user.password);
-            // console.log(`Entered username and password for ${user.username}`);
             await page.click('#submit');
-            // console.log(`Clicked submit button for ${user.username}`);
-            await page.waitForTimeout(10000);
-            await page.goto(CHECK_URL, { waitUntil: 'networkidle2' });
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
             const title = await page.title();
-            // console.log(`Page title for ${user.username}: ${title}`);
-
             const regexStrona = /Strona/i;
             const regexHome = /home/i;
 
             if (regexStrona.test(title) || regexHome.test(title)) {
-                loggedIn = true;
+                await page.waitForSelector('.table.nostripes.table-condensed');
+
+                let expirationDate;
+                try {
+                    expirationDate = await page.evaluate(() => {
+                        const expirationRow = document.querySelectorAll('.table.nostripes.table-condensed tr')[2];
+                        const expirationDateCell = expirationRow.querySelectorAll('td')[1];
+                        return expirationDateCell.innerText;
+                    });
+
+                    const parseDate = (dateStr) => {
+                        const datePatternEng = /(\w+)\. (\d+), (\d+), (\d+):(\d+) (\w+)\./;
+                        const datePatternEngAlt = /(\w+) (\d+), (\d+), (\d+):(\d+) (\w+)\./;
+                        const datePatternPl = /(\d+) ([a-ząęśćółń]+) (\d+) (\d+):(\d+)/;
+
+                        let date;
+                        if (datePatternEng.test(dateStr) || datePatternEngAlt.test(dateStr)) {
+                            const pattern = datePatternEng.test(dateStr) ? datePatternEng : datePatternEngAlt;
+                            const [, month, day, year, hour, minute, period] = pattern.exec(dateStr);
+                            const formattedTime = period === 'a.m.' ? `${hour}:${minute} AM` : `${hour}:${minute} PM`;
+                            date = new Date(`${month} ${day}, ${year} ${formattedTime}`);
+                        } else if (datePatternPl.test(dateStr)) {
+                            const monthsPl = { 'stycznia': 'January', 'lutego': 'February', 'marca': 'March', 'kwietnia': 'April', 'maja': 'May', 'czerwca': 'June', 'lipca': 'July', 'sierpnia': 'August', 'września': 'September', 'października': 'October', 'listopada': 'November', 'grudnia': 'December' };
+                            const [, day, month, year, hour, minute] = datePatternPl.exec(dateStr);
+                            date = new Date(`${monthsPl[month]} ${day}, ${year} ${hour}:${minute}`);
+                        } else {
+                            throw new Error(`Unrecognized date format: ${dateStr}`);
+                        }
+
+                        return date.toLocaleString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+                    };
+
+                    expirationDate = parseDate(expirationDate);
+                } catch (error) {
+                    console.error(`Error parsing date for ${user.username}:`, error);
+                    expirationDate = '获取日期时出错';
+                }
+
                 await browser.close();
-                return `✅ ${user.username} 登录成功.\n登录面板: ${user.login_url}\n登录IP: ${ipAddress}\n登录时间: ${beijingTime}`;
+                return `✅ 面板登录通知\n用户: ${user.username} 已登录.\n到期日期: ${expirationDate}.\n登录面板: ${user.login_url}\n登录IP: ${ipAddress}\n登录时间: ${beijingTime}`;
             }
             attempts++;
             if (attempts < 3) await page.waitForTimeout(30000);
@@ -86,26 +116,23 @@ const loginAndCheck = async (user, ipAddress) => {
     }
 
     await browser.close();
-    return `❌ ${user.username} 登录失败.\n登录面板: ${user.login_url}\n登录IP: ${ipAddress}\n登录时间: ${beijingTime}`;
+    return `❌ 面板登录通知\n${user.username} 登录失败.\n登录面板: ${user.login_url}\n登录IP: ${ipAddress}\n登录时间: ${beijingTime}`;
 };
 
 const main = async () => {
     try {
         const ipAddress = await getIPAddress();
-        // console.log(`Current IP Address: ${ipAddress}`);
-
         let combinedMessage = '';
         for (const user of LOGIN_INFO) {
             if (validateLoginUrl(user.login_url)) {
                 const message = await loginAndCheck(user, ipAddress);
                 combinedMessage += combinedMessage ? '\n\n' + message : message;
             } else {
-                const errorMessage = `❌ ${user.username} 的登录面板URL格式错误: ${user.login_url}`;
+                const errorMessage = `❌ 面板登录通知\n${user.username} 的登录面板URL格式错误: ${user.login_url}`;
                 combinedMessage += combinedMessage ? '\n\n' + errorMessage : errorMessage;
                 console.error(errorMessage);
             }
         }
-        // console.log(`Combined message to send: ${combinedMessage}`);
         await sendTelegramNotification(combinedMessage);
     } catch (error) {
         console.error('Error in main function:', error);
