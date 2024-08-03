@@ -28,4 +28,14 @@
 
 
 
+### 二、可自行修改定时任务执行时间
+
+目前是每隔10天的13:00（下午1点）执行，如需修改时间，自行设置 `.github\workflows\login.yml` 文件中的
+
+```
+- cron: '0 13 */10 * *'
+```
+
+
+
 ![](https://raw.githubusercontent.com/Troray/serv00-WEB-Login/main/Snipaste_2024-08-03_09-34-21.png)
