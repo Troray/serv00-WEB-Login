@@ -25,3 +25,7 @@
   {"username": "登录名", "password": "密码", "login_url": "https://panel.ct8.pl"}
 ]
 ```
+
+
+
+![](https://raw.githubusercontent.com/Troray/serv00-WEB-Login/main/Snipaste_2024-08-03_09-34-21.png)
